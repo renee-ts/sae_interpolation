@@ -48,7 +48,7 @@ num_layers = trained_model.config.num_hidden_layers
 hookpoints = [f"model.layers.{i}" for i in range(0, num_layers, 4)]
 sae_config = SaeConfig(
     hookpoints=hookpoints,
-    expansion_factor=64,  # from the saw paper
+    expansion_factor=64,  # from the sae paper
     k=32,  # can change
 )
 
