@@ -1,0 +1,36 @@
+
+model:
+  name: "EleutherAI/pythia-410m-deduped"
+  device: "cuda"
+
+dataset:
+  name: "RedPajama"
+  token_count: 100000000
+  activation_buffer_size: 10000000
+
+sae:
+  hidden_dim: 131072 # R=64
+  l1_coefficient: 1e-3
+  activation: "relu"
+  tied_weights: false
+  bias: true
+  sparsity: "topk"
+  k: 32
+  train_every_layer: false # depends on compute
+
+training:
+  learning_rate: 1e-4
+  batch_size: 256
+  epochs: 5
+  optimizer: "adam"
+
+extraction:
+  batch_size: 32
+  max_samples: 10000
+  sequence_length: 128
+  cache_activations: false
+
+paths:
+  checkpoints_dir: "./model_checkpoints"
+  sae_checkpoints_dir: "./sae_checkpoints"
+  log_dir: "./output/logs"
