@@ -1,0 +1,20 @@
+[project]
+name = "sae-interpolation"
+version = "0.1.0"
+description = "training dynamics of saes trained on transformers"
+authors = [
+    {name = "Your Name",email = "you@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch (==2.6.0)",
+    "huggingface-hub (==0.29.3)",
+    "transformers (==4.49.0)",
+    "sparsify @ git+https://github.com/EleutherAI/sparsify.git"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
