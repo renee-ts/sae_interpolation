@@ -29,4 +29,4 @@ extraction:
 paths:
   checkpoints_dir: "./model_checkpoints"
   sae_checkpoints_dir: "./sae_checkpoints"
-  log_dir: "./output/logs"
+  log_dir: "./logs"
