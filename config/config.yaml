@@ -9,14 +9,10 @@ dataset:
   activation_buffer_size: 10000000
 
 sae:
-  hidden_dim: 131072 # R=64
-  l1_coefficient: 1e-3
-  activation: "relu"
-  tied_weights: false
-  bias: true
-  sparsity: "topk"
+  hidden_dim: 131072 # = 64 * 2048
   k: 32
-  train_every_layer: false # depends on compute
+  expansion_factor: 64 # R = 64
+  activation: "topk"
 
 training:
   learning_rate: 1e-4

@@ -4,6 +4,7 @@ import os
 from sparsify import SaeConfig, Trainer, TrainConfig
 from sparsify.data import chunk_and_tokenize
 from utils.model_utils import load_pythia_checkpoint, extract_activations
+from utils.sae_utils import load_sae
 
 
 def train_sae_on_layer(checkpoint_step, layer_idx, sae_config, dataset):

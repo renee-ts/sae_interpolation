@@ -4,7 +4,7 @@ import os
 
 def setup_logging(log_dir="./logs", log_filename="train.log"):
     """
-    Initialize `setup_logging()` in main.py
+    Must call `setup_logging()` in main.py
     """
     os.makedirs(log_dir, exist_ok=True)
     log_filepath = os.path.join(log_dir, log_filename)
