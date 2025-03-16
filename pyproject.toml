@@ -11,7 +11,8 @@ dependencies = [
     "torch (==2.6.0)",
     "huggingface-hub (==0.29.3)",
     "transformers (==4.49.0)",
-    "sparsify @ git+https://github.com/EleutherAI/sparsify.git"
+    "sparsify @ git+https://github.com/EleutherAI/sparsify.git",
+    "pyyaml (>=6.0.2,<7.0.0)"
 ]
 
 
