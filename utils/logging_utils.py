@@ -1,0 +1,19 @@
+import logging
+import os
+
+
+def setup_logging(log_dir="./logs", log_filename="train.log"):
+    """
+    Initialize `setup_logging()` in main.py
+    """
+    os.makedirs(log_dir, exist_ok=True)
+    log_filepath = os.path.join(log_dir, log_filename)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(log_filepath),
+            logging.StreamHandler()
+        ]
+    )
