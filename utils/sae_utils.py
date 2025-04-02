@@ -18,10 +18,12 @@ def load_sae(config):
     k = config["k"]
     expansion_factor = config["expansion_factor"]
     activation = config["activation"]
+
     sae_config = SaeConfig(
         hidden_dim=hidden_dim,
         k=k,
         expansion_factor=expansion_factor,
         activation=activation
         )
+
     return sae_config
