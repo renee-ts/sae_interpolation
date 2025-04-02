@@ -13,6 +13,7 @@ sae:
   k: 32
   expansion_factor: 64 # R = 64
   activation: "topk"
+  batch size: 16
 
 training:
   learning_rate: 1e-4
