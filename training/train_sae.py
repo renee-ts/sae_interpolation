@@ -15,7 +15,7 @@ from datasets import load_dataset
 
 def train_sae(checkpoint_step: int, sae_config: Dict[str, Any], dataset_name: str):
     """
-    Trains an SAE on a single layer of a single model checkpoint.
+    Trains an SAE on a model.
     """
     dataset = load_dataset(dataset_name, split="train")
 
