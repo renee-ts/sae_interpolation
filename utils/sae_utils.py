@@ -14,13 +14,11 @@ def load_sae(config):
         create_sae expects the config dict passed in to only have the relevant
         configurations needed for sae. So one should first call `sae_config = config['sae]`.
     """
-    hidden_dim = config["hidden_dim"]
     k = config["k"]
     expansion_factor = config["expansion_factor"]
     activation = config["activation"]
 
     sae_config = SaeConfig(
-        hidden_dim=hidden_dim,
         k=k,
         expansion_factor=expansion_factor,
         activation=activation

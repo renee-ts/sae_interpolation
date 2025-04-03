@@ -9,25 +9,7 @@ dataset:
   activation_buffer_size: 10000000
 
 sae:
-  hidden_dim: 131072 # = 64 * 2048
   k: 32
   expansion_factor: 64 # R = 64
   activation: "topk"
   batch size: 16
-
-training:
-  learning_rate: 1e-4
-  batch_size: 256
-  epochs: 5
-  optimizer: "adam"
-
-extraction:
-  batch_size: 32
-  max_samples: 10000
-  sequence_length: 128
-  cache_activations: false
-
-paths:
-  checkpoints_dir: "./model_checkpoints"
-  sae_checkpoints_dir: "./sae_checkpoints"
-  log_dir: "./logs"
