@@ -37,7 +37,7 @@ def train_sae(checkpoint_step: int, sae_config: Dict[str, Any], dataset_name: st
     print("tokenized")
 
     sae_cfg = load_sae(sae_config)
-    num_layers =  len(model.config.num_hidden_layers)
+    num_layers =  model.config.num_hidden_layers
     hookpoints = hookpoints = [f"gpt_neox.layers.{layer_idx}.mlp.dense_4h_to_h" for layer_idx in range(num_layers)]
     
     train_config = TrainConfig(sae_cfg,
