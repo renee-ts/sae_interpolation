@@ -15,7 +15,7 @@ from datasets import load_dataset
 
 def train_sae(checkpoint_step: int, sae_config: Dict[str, Any], dataset_name: str):
     """
-    Trains an SAE on a single layer of a single model checkpoint.
+    Trains an SAE on a model.
     """
     dataset = load_dataset(dataset_name, split="train").select(range(100)) #temp
 
@@ -39,6 +39,7 @@ def train_sae(checkpoint_step: int, sae_config: Dict[str, Any], dataset_name: st
     sae_cfg = load_sae(sae_config)
     num_layers =  model.config.num_hidden_layers
     hookpoints = [f"gpt_neox.layers.{layer_idx}.mlp.dense_4h_to_h" for layer_idx in range(num_layers)]
+
     
     train_config = TrainConfig(sae_cfg,
                                batch_size=16,
