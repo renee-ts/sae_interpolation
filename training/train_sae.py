@@ -17,7 +17,7 @@ def train_sae(checkpoint_step: int, sae_config: Dict[str, Any], dataset_name: st
     """
     Trains an SAE on a single layer of a single model checkpoint.
     """
-    dataset = load_dataset(dataset_name, split="train")
+    dataset = load_dataset(dataset_name, split="train").select(range(100)) #temp
 
     if dataset is None:
         logging.error(f"Failed to load dataset: {dataset_name}.")
@@ -37,8 +37,8 @@ def train_sae(checkpoint_step: int, sae_config: Dict[str, Any], dataset_name: st
     print("tokenized")
 
     sae_cfg = load_sae(sae_config)
-    num_layers =  len(model.config.num_hidden_layers)
-    hookpoints = [f"blocks.{layer_idx}.mlp_output" for layer_idx in (num_layers)]
+    num_layers =  model.config.num_hidden_layers
+    hookpoints = [f"gpt_neox.layers.{layer_idx}.mlp.dense_4h_to_h" for layer_idx in range(num_layers)]
     
     train_config = TrainConfig(sae_cfg,
                                batch_size=16,
