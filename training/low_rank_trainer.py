@@ -3,7 +3,8 @@ from dataclasses import asdict
 from fnmatch import fnmatchcase
 from glob import glob
 from typing import Sized
-from sklearn.decomposition import PCA
+
+from .pca_coder import PCA_Coder
 import torch
 import torch.distributed as dist
 from datasets import Dataset as HfDataset
@@ -20,7 +21,7 @@ from sparsify import TrainConfig
 from sparsify.data import MemmapDataset
 from sparsify.utils import get_layer_list, resolve_widths, set_submodule
 
-class Trainer:
+class LR_Trainer:
     def __init__(
         self,
         cfg: TrainConfig,
@@ -72,27 +73,18 @@ class Trainer:
         num_batches = len(dataset) // cfg.batch_size
 
         self.pcas = {}
-        self.rank = self.cfg.pca.rank
         for hook in self.local_hookpoints():
             for seed in cfg.init_seeds:
                 torch.manual_seed(seed)
 
                 # Add suffix to the name to disambiguate multiple seeds
                 name = f"{hook}/seed{seed}" if len(cfg.init_seeds) > 1 else hook
-                self.pcas[name] = {
-                    "U": torch.zeros(
-                        num_batches, self.rank, device=device, dtype=torch.float32
-                    ),
-                    "S": torch.zeros(
-                        self.rank, device=device, dtype=torch.float32
-                    ),
-                    "V": torch.zeros(
-                        input_widths[hook], self.rank, device=device, dtype=torch.float32
-                    ),
-                    "mean": torch.ones(
-                        input_widths[hook], device=device, dtype=torch.float32
-                    )
-                }
+                self.pcas[name] = PCA_Coder(
+                    input_widths[hook],
+                    cfg.pca,
+                    device=device,
+                    dtype=torch.float32
+                )
 
 
         if self.cfg.save_best:
@@ -129,20 +121,9 @@ class Trainer:
             f"\033[92mResuming training at step {self.global_step} from '{path}'\033[0m"
         )
 
-        for i, scheduler in enumerate(self.lr_schedulers):
-            lr_state = torch.load(
-                f"{path}/lr_scheduler_{i}.pt", map_location=device, weights_only=True
-            )
-            scheduler.load_state_dict(lr_state)
-
-        for i, optimizer in enumerate(self.optimizers):
-            opt_state = torch.load(
-                f"{path}/optimizer_{i}.pt", map_location=device, weights_only=True
-            )
-            optimizer.load_state_dict(opt_state)
-
-        for name, sae in self.saes.items():
-            load_model(sae, f"{path}/{name}/sae.safetensors", device=str(device))
+        for name, pca in self.pcas.items():
+            assert isinstance(pca, PCA_Coder)
+            pca.load_from_disk(f"{path}/{name}", device=device)
 
     def get_current_k(self) -> int:
         """Get the current k value based on a linear decay schedule."""
@@ -209,6 +190,7 @@ class Trainer:
             name: self.model.base_model.get_submodule(name)
             for name in self.cfg.hookpoints
         }
+        maybe_wrapped: dict[str, DDP] | dict[str, PCA_Coder] = {}
         module_to_name = {v: k for k, v in name_to_module.items()}
 
         def hook(module: nn.Module, inputs, outputs):
@@ -241,43 +223,11 @@ class Trainer:
             # Flatten the batch and sequence dimensions
             outputs = outputs.flatten(0, 1)
             # Get the mean of the activations
-            mean = self.maybe_all_reduce(
-                outputs.mean(dim=0), op="mean"
-            )
-            outputs -= mean
+            pca_coder = maybe_wrapped[name]
+            pca_coder.fit(outputs)
 
-            # Perform SVD
-            U, S, Vh = torch.linalg.svd(outputs, full_matrices=False)
-            # Take low rank
-            U = U[:, : self.rank]
-            S = S[: self.rank]
-            Vh = Vh[: self.rank, :]
-
-            # Store the results in the PCA dictionary
-            if self.cfg.pca.update == "impute":
-                self.pcas[name]["U"] = U
-                self.pcas[name]["S"] = S
-                self.pcas[name]["V"] = Vh
-                self.pcas[name]["mean"] = mean
-            elif self.cfg.pca.update == "ema":
-                alpha = self.cfg.pca.alpha
-                self.pcas[name]["U"] = (
-                    1 - alpha
-                ) * self.pcas[name]["U"] + alpha * U
-                self.pcas[name]["S"] = (
-                    1 - alpha
-                ) * self.pcas[name]["S"] + alpha * S
-                self.pcas[name]["V"] = (
-                    1 - alpha
-                ) * self.pcas[name]["V"] + alpha * Vh
-                self.pcas[name]["mean"] = (
-                    1 - alpha
-                ) * self.pcas[name]["mean"] + alpha * mean
-            else:
-                raise ValueError(
-                    f"Unknown PCA update method '{self.cfg.pca.update}'"
-                )
-            low_rank_out = self.pcas[name]["U"] @ torch.diag(self.pcas[name]["S"]) @ self.pcas[name]["V"].T
+            # low_rank_out = self.pcas[name]["U"] @ torch.diag(self.pcas[name]["S"]) @ self.pcas[name]["V"].T + self.pcas[name]["mean"]
+            low_rank_out = pca_coder.U @ torch.diag(pca_coder.S) @ pca_coder.Vh + pca_coder.mean
             assert low_rank_out.shape == outputs.shape, (
                 low_rank_out.shape, outputs.shape
             )
@@ -294,10 +244,22 @@ class Trainer:
         # for name, sae in self.saes.items():
         #     sae.cfg.k = k
         # TODO: May want to implement rank decay later. That is, we start at a higher rank and then gradually get towards the final rank--might help when doing EMA.
-        # TODO: Implement saving. Currently, it expects self.saes to be SparseCoders.
 
         for batch in dl:
             x = batch["input_ids"].to(device)
+
+            if not maybe_wrapped:
+                # Wrap the SAEs with Distributed Data Parallel. We have to do this
+                # after we set the decoder bias, otherwise DDP will not register
+                # gradients flowing to the bias after the first step.
+                maybe_wrapped = (
+                    {
+                        name: DDP(pca, device_ids=[dist.get_rank()])
+                        for name, pca in self.pcas.items()
+                    }
+                    if ddp
+                    else self.pcas
+                )
 
             # Bookkeeping for dead feature detection
             N = x.numel()
@@ -418,40 +380,28 @@ class Trainer:
                 self.best_loss = avg_loss  # type: ignore
                 self.save(base_path)
         else:
-            for name in self.saes:
+            for name in self.pcas:
                 if avg_loss[name] < self.best_loss[name]:  # type: ignore
                     self.best_loss[name] = avg_loss[name]  # type: ignore
                     path = f"{base_path}/{name}"
-                    self.save(path, {name: self.saes[name]})
+                    self.save(path, {name: self.pcas[name]})
 
-    def save(self, path: str | None = None, saes: dict[str, SparseCoder] | None = None):
+    def save(self, path: str | None = None, pcas: dict[str, PCA_Coder] | None = None):
         """Save the SAEs to disk."""
         if path is None:
             path = f'{self.cfg.save_dir}/{self.cfg.run_name or "unnamed"}'
-        if saes is None:
-            saes = self.saes
+        if pcas is None:
+            pcas = self.pcas
 
         rank_zero = not dist.is_initialized() or dist.get_rank() == 0
-
-        for optimizer in self.optimizers:
-            if hasattr(optimizer, "eval"):
-                optimizer.eval()  # type: ignore
 
         if rank_zero or self.cfg.distribute_modules:
             print("Saving checkpoint")
 
-            for optimizer in self.optimizers:
-                if isinstance(optimizer, ScheduleFreeWrapper):
-                    optimizer.eval()
 
-            for name, sae in saes.items():
-                assert isinstance(sae, SparseCoder)
-
-                sae.save_to_disk(f"{path}/{name}")
-
-            for optimizer in self.optimizers:
-                if isinstance(optimizer, ScheduleFreeWrapper):
-                    optimizer.train()
+            for name, pca in pcas.items():
+                assert isinstance(pca, PCA_Coder)
+                pca.save_to_disk(f"{path}/{name}")
 
             rank = 0 if rank_zero else dist.get_rank()
             torch.save(
@@ -460,19 +410,9 @@ class Trainer:
             )
 
         if rank_zero:
-            for i, scheduler in enumerate(self.lr_schedulers):
-                torch.save(scheduler.state_dict(), f"{path}/lr_scheduler_{i}.pt")
-
-            for i, optimizer in enumerate(self.optimizers):
-                torch.save(optimizer.state_dict(), f"{path}/optimizer_{i}.pt")
-
             torch.save({"global_step": self.global_step}, f"{path}/state.pt")
 
             self.cfg.save_json(f"{path}/config.json")
-
-        for optimizer in self.optimizers:
-            if hasattr(optimizer, "train"):
-                optimizer.train()  # type: ignore
 
         # Barrier to ensure all ranks have saved before continuing
         if dist.is_initialized():
