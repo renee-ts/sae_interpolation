@@ -304,7 +304,7 @@ class LR_Trainer:
                     info.update({k: v for out in outputs for k, v in out.items()})
 
                 if rank_zero:
-                    info["k"] = self.rank
+                    info["k"] = self.pca.rank
 
                     if wandb is not None:
                         wandb.log(info, step=step)

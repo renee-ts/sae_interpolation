@@ -1,0 +1,14 @@
+
+model:
+  name: "EleutherAI/pythia-410m-deduped"
+  device: "cuda"
+
+dataset:
+  name: "RedPajama"
+  token_count: 100000000
+  activation_buffer_size: 10000000
+
+pca:
+  rank: 16
+  update_rule: "ema"
+  alpha: 0.99
