@@ -1,6 +1,6 @@
 
 model:
-  name: "EleutherAI/pythia-410m-deduped"
+  name: "EleutherAI/pythia-160m-deduped"
   device: "cuda"
 
 dataset:
@@ -12,4 +12,4 @@ sae:
   k: 32
   expansion_factor: 64 # R = 64
   activation: "topk"
-  batch size: 16
+  batch_size: 4

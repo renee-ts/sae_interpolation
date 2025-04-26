@@ -13,16 +13,15 @@ from utils.sae_utils import load_sae
 from datasets import load_dataset
 
 
-def train_sae(checkpoint_step: int, sae_config: Dict[str, Any], dataset_name: str):
+def train_sae(checkpoint_step: int, sae_config: Dict[str, Any]):
     """
     Trains an SAE on a model.
     """
-    dataset = load_dataset(dataset_name, split="train")
+    dataset = load_dataset("wikitext", "wikitext-2-v1", split="train")
 
     if dataset is None:
         logging.error(f"Failed to load dataset: {dataset_name}.")
         return
-    print("dataset loaded")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -31,25 +30,20 @@ def train_sae(checkpoint_step: int, sae_config: Dict[str, Any], dataset_name: st
     if model is None or tokenizer is None:
         logging.error(f"Failed to load model at checkpoint {checkpoint_step}.")
         return
-    print("model loaded")
 
     tokenized = chunk_and_tokenize(dataset, tokenizer)
-    print("tokenized")
 
     sae_cfg = load_sae(sae_config)
     num_layers =  model.config.num_hidden_layers
     hookpoints = hookpoints = [f"gpt_neox.layers.{layer_idx}.mlp.dense_4h_to_h" for layer_idx in range(num_layers)]
     
     train_config = TrainConfig(sae_cfg,
-                               batch_size=16,
+                               batch_size=4,
                                optimizer="adam",
                                run_name = "Pythia-410M",
                                hookpoints=hookpoints)
 
-    print("train_config")
 
     trainer = Trainer(train_config, tokenized, model)
-    print("trainer done")
 
     trainer.fit()
-    print("trainer fitted")

@@ -3,7 +3,7 @@ import torch
 import logging
 
 
-def load_pythia_checkpoint(checkpoint_step, model_name="EleutherAI/pythia-410m", device="cuda"):
+def load_pythia_checkpoint(checkpoint_step, model_name="EleutherAI/pythia-160m", device="cuda"):
     """
     Load a specific checkpoint step. There are 154 checkpoints:
         step{2^n} for n = {0, 1, ..., 10}
