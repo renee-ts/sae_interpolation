@@ -48,10 +48,8 @@ def main():
     sae_base_config = full_config["sae"]
 
     for step in assigned_checkpoints:
-        checkpoint_output_dir = os.path.join(args.output_dir, f"checkpoint_{step}")
-        os.makedirs(checkpoint_output_dir, exist_ok=True)
         sae_config = sae_base_config.copy()
-        sae_config["output_dir"] = checkpoint_output_dir
+        sae_config["output_dir"] = f"./checkpoints/{step}"
         logging.info(f"Training SAE for checkpoint {step}")
         try:
             train_sae(step, sae_config)

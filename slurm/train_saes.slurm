@@ -1,14 +1,16 @@
 #!/bin/bash
 #SBATCH --job-name=train-saes
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4        
-#SBATCH --mem=32G                
-#SBATCH --time=6:00:00           
-#SBATCH --partition=a40       
-#SBATCH --qos=normal             
-#SBATCH --gres=gpu:1             
-#SBATCH --array=0-3%4            
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=32G
+#SBATCH --time=4:00:00
+#SBATCH --partition=a40
+#SBATCH --qos=normal
+#SBATCH --gres=gpu:1
+#SBATCH --array=0-3%4
 #SBATCH --output=logs/%x_%A_%a.out
+#SBATCH --mail-user=c.swaney@mail.utoronto.ca
+#SBATCH --mail-type=ALL
 
 source ~/.bashrc
 source venv/bin/activate

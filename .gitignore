@@ -4,9 +4,12 @@ logs/*
 __pycache__/
 *.py[cod]
 *$py.class
-
 # C extensions
 *.so
+*.tar
+*.tar.gz
+filelist.txt
+tmp.py
 
 # Distribution / packaging
 .Python
