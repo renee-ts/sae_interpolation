@@ -45,7 +45,7 @@ log_path = latents_path.parent / "log"
 log_path.mkdir(parents=True, exist_ok=True)
 
 # Create dictionary with hookpoint-to-sae pairs
-hookpoint_to_sparse_encoder = populate_submodule_dict(checkpoint_step, model, model_dim,sae_path, device = "cpu")
+hookpoint_to_sparse_encoder = populate_submodule_dict(checkpoint_step, model_dim,sae_path, device = "cpu")
 
 # Define and run cache to generate SAE activations
 cache = LatentCache(
