@@ -31,8 +31,7 @@ cache_cfg = CacheConfig(
     n_tokens=10_000, # CHANGE, paper used n_tokens=200_000
 )
 
-tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m")
-model = load_pythia_checkpoint(checkpoint_step = checkpoint_step)
+model, tokenizer = load_pythia_checkpoint(checkpoint_step = checkpoint_step)
 data = load_dataset(cache_cfg.dataset_repo, split=cache_cfg.dataset_split)
 tokens = chunk_and_tokenize(data, tokenizer, max_seq_len=cache_cfg.cache_ctx_len, text_key="raw_content", num_proc = 1)["input_ids"]
 
@@ -45,7 +44,7 @@ log_path = latents_path.parent / "log"
 log_path.mkdir(parents=True, exist_ok=True)
 
 # Create dictionary with hookpoint-to-sae pairs
-hookpoint_to_sparse_encoder = populate_submodule_dict(checkpoint_step, model_dim,sae_path, device = "cpu")
+hookpoint_to_sparse_encoder = populate_submodule_dict(checkpoint_step, model_dim, sae_path, device = "cpu")
 
 # Define and run cache to generate SAE activations
 cache = LatentCache(
