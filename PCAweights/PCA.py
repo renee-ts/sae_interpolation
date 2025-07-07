@@ -9,7 +9,7 @@ import os
 import gc
 import psutil
 import sys
-
+import joblib
 REPO_ID = "sae-ml-drp/sae-ml-drp"
 LAYER_TO_ANALYZE=6 # change between [0,6,11]
 CHECKPOINTS = sorted([2 ** p for p in range(10)] + [n * 1000 for n in range(44)] + [m * 1000 for m in range(45, 144, 2)])
@@ -248,6 +248,12 @@ def main():
     pca = PCA(n_components=n_components)
     
     pca.fit(X)
+    
+    # saving PCA and scores
+    joblib.dump(pca, f"pca_layer{LAYER_TO_ANALYZE}.pkl")
+    scores = pca.transform(X)
+    np.savez_compressed(f"pca_layer{LAYER_TO_ANALYZE}_scores.npz",
+                        scores=scores, steps=np.array(CHECKPOINTS))
 
     # display results
     print("\n--- PCA Results ---")
